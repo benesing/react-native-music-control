@@ -25,5 +25,6 @@ declare const MusicControl: {
     off: (actionName: Command) => void;
     stopControl: () => void;
     handleAudioInterruptions: (enable: boolean) => void;
+    handleAudioRouteChanged: (enable: boolean) => void;
 };
 export default MusicControl;

@@ -97,6 +97,9 @@ const MusicControl = {
   },
   handleAudioInterruptions: function(enable: boolean): void {
     NativeMusicControl.observeAudioInterruptions(enable)
+  },
+  handleAudioRouteChanged: function(enable: boolean): void {
+    NativeMusicControl.observeAudioRouteChange(enable)
   }
 }
 

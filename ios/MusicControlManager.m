@@ -10,6 +10,7 @@
 
 @property (nonatomic, copy) NSString *artworkUrl;
 @property (nonatomic, assign) BOOL audioInterruptionsObserved;
+@property (nonatomic, assign) BOOL audioRouteChangeObserved;
 
 @end
 
@@ -200,6 +201,18 @@ RCT_EXPORT_METHOD(observeAudioInterruptions:(BOOL) observe){
     self.audioInterruptionsObserved = observe;
 }
 
+RCT_EXPORT_METHOD(observeAudioRouteChange:(BOOL) observe){
+    if (self.audioRouteChangeObserved == observe) {
+        return;
+    }
+    if (observe) {
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(audioHardwareRouteChanged:) name:AVAudioSessionRouteChangeNotification object:nil];
+    } else {
+        [[NSNotificationCenter defaultCenter] removeObserver:self name:AVAudioSessionRouteChangeNotification object:nil];
+    }
+    self.audioRouteChangeObserved = observe;
+}
+
 #pragma mark internal
 
 - (NSDictionary *) update:(NSMutableDictionary *) mediaDict with:(NSDictionary *) details andSetDefaults:(BOOL) setDefault {
@@ -229,9 +242,9 @@ RCT_EXPORT_METHOD(observeAudioInterruptions:(BOOL) observe){
 
 - (id)init {
     self = [super init];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(audioHardwareRouteChanged:) name:AVAudioSessionRouteChangeNotification object:nil];
     [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
     self.audioInterruptionsObserved = false;
+    self.audioRouteChangeObserved = false;
     return self;
 }
 
@@ -262,7 +275,6 @@ RCT_EXPORT_METHOD(observeAudioInterruptions:(BOOL) observe){
     [self toggleHandler:remoteCenter.skipBackwardCommand withSelector:@selector(onSkipBackward:) enabled:false];
     [self toggleHandler:remoteCenter.skipForwardCommand withSelector:@selector(onSkipForward:) enabled:false];
     [self observeAudioInterruptions:false];
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:AVAudioSessionRouteChangeNotification object:nil];
 }
 
 - (MPRemoteCommandHandlerStatus)onPause:(MPRemoteCommandEvent*)event {
@@ -409,6 +421,9 @@ RCT_EXPORT_METHOD(observeAudioInterruptions:(BOOL) observe){
 }
 
 - (void)audioHardwareRouteChanged:(NSNotification *)notification {
+    if (!self.audioRouteChangeObserved) {
+        return;
+    }
     NSInteger routeChangeReason = [notification.userInfo[AVAudioSessionRouteChangeReasonKey] integerValue];
     if (routeChangeReason == AVAudioSessionRouteChangeReasonOldDeviceUnavailable) {
         //headphones unplugged or bluetooth device disconnected, iOS will pause audio
